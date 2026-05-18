@@ -131,13 +131,31 @@ func serveStaticFiles(mux *http.ServeMux) {
 	// Try to serve embedded frontend/dist
 	distDir := "frontend/dist"
 	if _, err := os.Stat(distDir); err == nil {
-		fs := http.FileServer(http.Dir(distDir))
-		mux.Handle("/", fs)
 		log.Printf("[HTTP] 静态文件服务: %s", distDir)
-	} else {
-		// Fallback: serve index.html for SPA routing
+		// 使用自定义 handler，跳过 /api/ 路径
 		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			http.ServeFile(w, r, "frontend/dist/index.html")
+			// API 路径不处理
+			if len(r.URL.Path) >= 4 && r.URL.Path[:4] == "/api" {
+				http.NotFound(w, r)
+				return
+			}
+			// SPA 路由: 如果文件不存在，返回 index.html
+			filePath := distDir + r.URL.Path
+			if info, err := os.Stat(filePath); err != nil || info.IsDir() {
+				http.ServeFile(w, r, distDir+"/index.html")
+				return
+			}
+			http.FileServer(http.Dir(distDir)).ServeHTTP(w, r)
+		})
+	} else {
+		log.Printf("[HTTP] 警告: 前端目录不存在: %s", distDir)
+		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+			if len(r.URL.Path) >= 4 && r.URL.Path[:4] == "/api" {
+				http.NotFound(w, r)
+				return
+			}
+			w.Header().Set("Content-Type", "text/html; charset=utf-8")
+			w.Write([]byte("<h1>KiroX</h1><p>前端文件未找到。请检查 frontend/dist 目录。</p>"))
 		})
 	}
 }
