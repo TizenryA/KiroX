@@ -18,7 +18,7 @@ function escapeHtml(s) {
 async function reloadSubscriptionAccounts() {
   var res;
   try {
-    res = await window.go.main.App.LoadOutputAccounts();
+    res = await LoadOutputAccounts();
   } catch (e) {
     showToast('加载账号失败: ' + e, 'error');
     return;
@@ -174,7 +174,7 @@ async function openSubscriptionPlanModal(singleIdx) {
     '<span>加载中…</span>' +
   '</div>';
   try {
-    var res = await window.go.main.App.GetSubscriptionPlans(refAccount.email);
+    var res = await GetSubscriptionPlans(refAccount.email);
     if (!res || !res.success) {
       listBox.innerHTML = '<div style="color:#ef4444;font-size:13px;padding:20px 0;text-align:center;">' + escapeHtml((res && res.error) || '加载失败') + '</div>';
       return;
@@ -255,7 +255,7 @@ async function doFetchSubLink(idx) {
   a.status = 'loading'; a.url = ''; a.error = '';
   renderSubTable(); updateSubProgress();
   try {
-    var res = await window.go.main.App.GetSubscriptionLink(a.email, subState.planType);
+    var res = await GetSubscriptionLink(a.email, subState.planType);
     if (res && res.success && res.url) {
       a.status = 'success'; a.url = res.url;
     } else if (res && res.suspended) {
@@ -320,7 +320,7 @@ async function batchFetchSubscriptionLinks() {
 
 function openSubLink(idx) {
   var a = subState.accounts[idx];
-  if (a && a.url) window.go.main.App.OpenURL(a.url);
+  if (a && a.url) window.open(a.url, '_blank');
 }
 
 function copySubLink(idx) {

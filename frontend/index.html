@@ -60,8 +60,113 @@
     to { transform: rotate(360deg); }
   }
 </style>
+<style>
+  /* 登录页面样式 */
+  #login-container {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100vw; height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #eef2f7 0%, #e0e7ff 100%);
+    z-index: 10000;
+  }
+  [data-theme="dark"] #login-container {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+  }
+  .login-card {
+    background: var(--card-bg, #fff);
+    border-radius: 16px;
+    padding: 40px 36px;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 20px 60px -15px rgba(0,0,0,0.15);
+    text-align: center;
+  }
+  [data-theme="dark"] .login-card {
+    background: #1e293b;
+    box-shadow: 0 20px 60px -15px rgba(0,0,0,0.5);
+  }
+  .login-logo {
+    width: 64px; height: 64px;
+    margin: 0 auto 20px;
+    background: #fff;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 20px -4px rgba(0,0,0,0.12);
+  }
+  .login-logo svg { width: 36px; height: 36px; }
+  .login-title {
+    font-size: 22px;
+    font-weight: 800;
+    color: var(--text, #1f2937);
+    margin-bottom: 6px;
+  }
+  .login-subtitle {
+    font-size: 13px;
+    color: var(--text-muted, #9ca3af);
+    margin-bottom: 28px;
+  }
+  .login-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid var(--border, #e5e7eb);
+    border-radius: 10px;
+    font-size: 14px;
+    background: var(--bg-subtle, #f9fafb);
+    color: var(--text, #1f2937);
+    outline: none;
+    transition: border-color 0.2s;
+    box-sizing: border-box;
+  }
+  .login-input:focus {
+    border-color: var(--primary, #3b82f6);
+  }
+  .login-btn {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    background: #1f2937;
+    cursor: pointer;
+    margin-top: 16px;
+    transition: opacity 0.2s;
+  }
+  .login-btn:hover { opacity: 0.9; }
+  .login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .login-error {
+    font-size: 12px;
+    color: var(--danger, #ef4444);
+    margin-top: 12px;
+    min-height: 18px;
+  }
+</style>
 </head>
 <body>
+
+<!-- 登录页面 -->
+<div id="login-container" style="display:none;">
+  <div class="login-card">
+    <div class="login-logo">
+      <svg viewBox="0 0 32 32" fill="none">
+        <path d="M10 8v16M10 16l8-8M10 16l8 8" stroke="#000" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="login-title">KiroX</div>
+    <div class="login-subtitle">请输入密码以继续</div>
+    <form id="login-form" onsubmit="handleLogin(event)">
+      <input type="password" id="login-password" class="login-input" placeholder="输入密码" autocomplete="current-password" autofocus>
+      <button type="submit" id="login-btn" class="login-btn">登录</button>
+    </form>
+    <div id="login-error" class="login-error"></div>
+  </div>
+</div>
 
 <!-- 全局加载遮罩层 -->
 <div id="global-loading-overlay" style="display:none;position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.6);backdrop-filter:blur(4px);z-index:9999;align-items:center;justify-content:center;flex-direction:column;">
@@ -86,10 +191,10 @@
 <div id="update-modal" class="modal-overlay">
   <div style="width:100%;max-width:500px;padding:24px;max-height:90vh;display:flex;">
     <div class="card" style="padding:32px;display:flex;flex-direction:column;min-height:0;flex:1;">
-      <div style="text-align:center;margin-bottom:24px;--wails-draggable:drag;cursor:move;flex-shrink:0;">
+      <div style="text-align:center;margin-bottom:24px;cursor:move;flex-shrink:0;">
         <div style="font-size:18px;font-weight:700;color:var(--accent);">发现新版本</div>
       </div>
-      <div style="margin-bottom:16px;--wails-draggable:no-drag;flex-shrink:0;">
+      <div style="margin-bottom:16px;flex-shrink:0;">
         <div style="display:flex;justify-content:space-between;margin-bottom:12px;font-size:13px;">
           <span style="color:var(--text-secondary);">当前版本</span>
           <span id="update-current-version" style="font-family:var(--font-mono);font-weight:600;">-</span>
@@ -103,11 +208,11 @@
           <span id="update-release-date" style="font-family:var(--font-mono);font-weight:600;">-</span>
         </div>
       </div>
-      <div style="margin-bottom:20px;padding:16px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:var(--radius);--wails-draggable:no-drag;flex:1;min-height:0;display:flex;flex-direction:column;">
+      <div style="margin-bottom:20px;padding:16px;background:var(--bg-subtle);border:1px solid var(--border);border-radius:var(--radius);flex:1;min-height:0;display:flex;flex-direction:column;">
         <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;flex-shrink:0;">更新内容</div>
         <div id="update-changelog" style="font-size:12px;line-height:1.6;color:var(--text);white-space:pre-wrap;overflow-y:auto;flex:1;min-height:0;">-</div>
       </div>
-      <div class="btn-row" style="--wails-draggable:no-drag;flex-shrink:0;">
+      <div class="btn-row" style="flex-shrink:0;">
         <button onclick="closeUpdateModal()" id="btn-update-later" class="btn btn-secondary" style="flex:1;justify-content:center;">稍后</button>
         <button onclick="openReleasePage()" id="btn-update-now" class="btn btn-dark" style="flex:1;justify-content:center;">前往下载</button>
       </div>
@@ -202,11 +307,6 @@
 <!-- 窗口标题栏 -->
 <div class="app-titlebar">
   <span class="app-titlebar-text" id="titlebar-text">概览</span>
-  <div class="window-traffic">
-    <div style="background:#28c840;" onclick="maximizeApp()"></div>
-    <div style="background:#febc2e;" onclick="minimizeApp()"></div>
-    <div style="background:#ff5f57;" onclick="closeApp()"></div>
-  </div>
 </div>
 
 <!-- 右侧主区域 -->
@@ -304,7 +404,7 @@
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 11-6.22-8.56"/><path d="M21 3v6h-6"/></svg>
                 检查更新
               </button>
-              <button onclick="window.go.main.App.OpenURL('https://qm.qq.com/q/RXMTXUlc4w')" class="btn btn-secondary btn-sm">
+              <button onclick="window.open('https://qm.qq.com/q/RXMTXUlc4w', '_blank')" class="btn btn-secondary btn-sm">
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
                 加入交流群
               </button>
@@ -325,7 +425,7 @@
             </div>
             <div style="display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:8px 0;">
               <span style="color:var(--text-secondary);">作者</span>
-              <div class="author-row" style="margin-top:0;padding:4px 8px;" onclick="window.go.main.App.OpenURL('https://github.com/huey1in')">
+              <div class="author-row" style="margin-top:0;padding:4px 8px;" onclick="window.open('https://github.com/huey1in', '_blank')">
                 <img src="https://avatars.githubusercontent.com/u/143839232?v=4&size=64" referrerpolicy="no-referrer">
                 <div>
                   <div style="font-size:13px;font-weight:600;color:var(--text);">1in</div>
@@ -863,6 +963,7 @@
   </div>
 </div>
 
+<script src="js/api.js"></script>
 <script src="js/accounts.js"></script>
 <script src="js/moemail.js"></script>
 <script src="js/task.js"></script>

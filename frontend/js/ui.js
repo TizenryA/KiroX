@@ -196,7 +196,7 @@ async function loadMoeMailDomainsToList() {
   listDiv.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:12px;padding:12px;">加载中...</div>';
 
   try {
-    const configs = await window.go.main.App.GetMoeMailConfigs();
+    const configs = await GetMoeMailConfigs();
 
     if (!configs || configs.length === 0) {
       listDiv.innerHTML = '<div style="text-align:center;color:var(--text-muted);font-size:12px;padding:12px;">暂无配置，请先在设置页添加</div>';

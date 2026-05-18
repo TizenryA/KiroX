@@ -5,9 +5,8 @@ var taskStatusTimer = null;
 
 // loadOverview 加载概览数据（含账号池统计，3秒刷新）
 async function loadOverview() {
-  if (!window.go || !window.go.main || !window.go.main.App) return;
   try {
-    var data = await window.go.main.App.GetOverview();
+    var data = await GetOverview();
     updateOverviewUI(data);
     // 加载 MoeMail 配置统计
     if (typeof loadMoeMailConfigs === 'function') {
@@ -20,9 +19,8 @@ async function loadOverview() {
 
 // loadTaskStatus 加载实时任务状态（纯内存，1秒刷新）
 async function loadTaskStatus() {
-  if (!window.go || !window.go.main || !window.go.main.App || !window.go.main.App.GetTaskStatus) return;
   try {
-    var data = await window.go.main.App.GetTaskStatus();
+    var data = await GetTaskStatus();
     updateTaskStatusUI(data);
   } catch (e) {}
 }

@@ -17,8 +17,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	wailsRuntime "github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // VersionInfo 版本信息
@@ -303,14 +301,14 @@ func DownloadUpdate(ctx context.Context) map[string]interface{} {
 
 			// 发送进度事件（节流，每 100ms 发送一次，避免阻塞前端）
 			now := time.Now()
-			if ctx != nil && (now.Sub(lastEventTime) > 100*time.Millisecond || downloaded == totalSize) {
+			if (now.Sub(lastEventTime) > 100*time.Millisecond || downloaded == totalSize) {
 				lastEventTime = now
 				progress := float64(0)
 				if totalSize > 0 {
 					progress = float64(downloaded) / float64(totalSize) * 100
 				}
-				// 注意：前端 task.js 监听的是 update-progress 并且接收三个独立参数
-				wailsRuntime.EventsEmit(ctx, "update-progress", progress, downloaded, totalSize)
+				// HTTP 模式下不推送进度事件，前端可轮询 GET /api/status
+				_ = progress
 			}
 		}
 		if err == io.EOF {

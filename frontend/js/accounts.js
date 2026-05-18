@@ -20,7 +20,7 @@ async function addOutlookAccounts() {
     return;
   }
   try {
-    var result = await window.go.main.App.AddOutlookAccounts(data);
+    var result = await AddOutlookAccounts(data);
     if (result.error) {
       showToast(result.error, 'error');
       return;
@@ -36,12 +36,12 @@ async function addOutlookAccounts() {
 
 async function importOutlookFile() {
   try {
-    var filePath = await window.go.main.App.SelectOutlookFile();
+    var filePath = await SelectOutlookFile();
     if (!filePath) {
       return;
     }
 
-    var result = await window.go.main.App.ImportOutlookFile(filePath);
+    var result = await ImportOutlookFile(filePath);
     if (result.error) {
       showToast(result.error, 'error');
       return;
@@ -57,7 +57,7 @@ async function importOutlookFile() {
 
 async function loadOutlookAccountsList() {
   try {
-    var accounts = await window.go.main.App.GetOutlookAccounts();
+    var accounts = await GetOutlookAccounts();
     outlookAllAccounts = accounts || [];
     renderOutlookPage();
   } catch(e) {
@@ -119,7 +119,7 @@ function changeOutlookPage(delta) {
 async function deleteOutlookAccount(email) {
   showConfirmModal('删除账号', '确认删除账号 ' + email + ' ?', '确认删除', async function() {
     try {
-      var result = await window.go.main.App.DeleteOutlookAccount(email);
+      var result = await DeleteOutlookAccount(email);
       if (result.error) {
         showToast(result.error, 'error');
         return;
@@ -135,7 +135,7 @@ async function deleteOutlookAccount(email) {
 function clearAllOutlookAccounts() {
   showConfirmModal('清空微软邮箱', '确认清空所有微软邮箱账号？此操作不可恢复！', '确认清空', async function() {
     try {
-      var result = await window.go.main.App.ClearOutlookAccounts();
+      var result = await ClearOutlookAccounts();
       if (result.error) {
         showToast(result.error, 'error');
         return;
@@ -156,7 +156,7 @@ function clearRegisteredOutlookAccounts() {
   }
   showConfirmModal('清除已注册', '确认删除 ' + registered + ' 个已注册（成功/失败）的账号？', '确认删除', async function() {
     try {
-      var result = await window.go.main.App.ClearRegisteredOutlookAccounts();
+      var result = await ClearRegisteredOutlookAccounts();
       if (result.error) {
         showToast(result.error, 'error');
         return;

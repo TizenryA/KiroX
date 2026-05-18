@@ -71,7 +71,7 @@ document.addEventListener('click', function(e) {
 
 async function loadInfoVersion() {
   try {
-    var data = await window.go.main.App.GetOverview();
+    var data = await GetOverview();
     var ver = (data && data.version) ? data.version : '';
     if (ver) {
       ['info-version-detail', 'info-version-detail2'].forEach(function(id) {
@@ -88,7 +88,7 @@ async function loadInfoVersion() {
   var tagEl = document.getElementById('info-changelog-version');
   if (changelogEl) changelogEl.innerHTML = '<span style="color:var(--text-muted);">加载中...</span>';
   try {
-    var result = await window.go.main.App.CheckUpdate();
+    var result = await CheckUpdate();
     if (result.error) {
       if (changelogEl) changelogEl.innerHTML = '<span style="color:var(--text-muted);">加载失败: ' + result.error + '</span>';
       return;
@@ -115,16 +115,16 @@ async function loadInfoVersion() {
 // 存储目录设置
 async function loadDataDir() {
   try {
-    var dir = await window.go.main.App.GetDataDir();
+    var dir = await GetDataDir();
     document.getElementById('cfg-data-dir').value = dir || '';
   } catch(e) {}
 }
 
 async function selectDataDir() {
   try {
-    var path = await window.go.main.App.SelectDirectory();
+    var path = await SelectDirectory();
     if (!path) return;
-    var result = await window.go.main.App.SetDataDir(path);
+    var result = await SetDataDir(path);
     if (result.error) {
       showToast(result.error, 'error');
       return;
@@ -138,7 +138,7 @@ async function selectDataDir() {
 
 async function resetDataDir() {
   try {
-    var result = await window.go.main.App.ResetDataDir();
+    var result = await ResetDataDir();
     if (result.error) {
       showToast(result.error, 'error');
       return;
@@ -153,7 +153,7 @@ async function resetDataDir() {
 // 注册结果输出目录设置
 async function loadResultOutputDir() {
   try {
-    var dir = await window.go.main.App.GetResultOutputDir();
+    var dir = await GetResultOutputDir();
     var el = document.getElementById('cfg-result-output-dir');
     if (el) el.value = dir || '';
   } catch(e) {}
@@ -161,9 +161,9 @@ async function loadResultOutputDir() {
 
 async function selectResultOutputDir() {
   try {
-    var path = await window.go.main.App.SelectDirectory();
+    var path = await SelectDirectory();
     if (!path) return;
-    var result = await window.go.main.App.SetResultOutputDir(path);
+    var result = await SetResultOutputDir(path);
     if (result.error) {
       showToast(result.error, 'error');
       return;
@@ -177,7 +177,7 @@ async function selectResultOutputDir() {
 
 async function resetResultOutputDir() {
   try {
-    var result = await window.go.main.App.ResetResultOutputDir();
+    var result = await ResetResultOutputDir();
     if (result.error) {
       showToast(result.error, 'error');
       return;
@@ -192,7 +192,7 @@ async function resetResultOutputDir() {
 // 代理设置
 async function loadProxy() {
   try {
-    var p = await window.go.main.App.GetProxy();
+    var p = await GetProxy();
     var el = document.getElementById('cfg-proxy');
     if (el) el.value = p || '';
   } catch(e) {}
@@ -233,7 +233,7 @@ async function saveProxy() {
   try {
     if (el.value.trim()) renderProxyDetectCard('loading');
     else renderProxyDetectCard('hidden');
-    var result = await window.go.main.App.SetProxy(el.value.trim());
+    var result = await SetProxy(el.value.trim());
     if (result.error) {
       showToast(result.error, 'error');
       renderProxyDetectCard('hidden');
@@ -257,7 +257,7 @@ async function saveProxy() {
 
 async function resetProxy() {
   try {
-    await window.go.main.App.ResetProxy();
+    await ResetProxy();
     var el = document.getElementById('cfg-proxy');
     if (el) el.value = '';
     renderProxyDetectCard('hidden');
@@ -353,30 +353,14 @@ function saveConfig() {
 async function loadConfig() {
   console.log('[启动] 开始初始化...');
   
-  // 默认禁用所有功能，等待卡密验证
-  
-  let retries = 0;
-  while ((!window.go || !window.go.main || !window.go.main.App) && retries < 100) {
-    await new Promise(resolve => setTimeout(resolve, 50));
-    retries++;
-  }
-  if (!window.go || !window.go.main || !window.go.main.App) {
-    console.error('[启动] Wails runtime 加载失败');
-    // 即使失败也显示界面
-    document.getElementById('main-container').style.display = 'block';
+  // 检查登录状态
+  var token = localStorage.getItem('kirox_token');
+  if (!token) {
+    showLoginPage();
     return;
   }
-  console.log('[启动] Wails runtime 已就绪');
 
-  // 检测平台，macOS 使用原生窗口控件
-  try {
-    const env = await window.runtime.Environment();
-    if (env && env.platform === 'darwin') {
-      document.body.classList.add('platform-darwin');
-    }
-  } catch(e) {}
-
-  // 直接显示主界面
+  // 已登录，显示主界面
   console.log('[启动] 显示主界面');
   const mainContainer = document.getElementById('main-container');
   if (mainContainer) {
@@ -428,7 +412,7 @@ window.addEventListener('DOMContentLoaded', async function() {
 
 async function checkUpdateOnStartup() {
   try {
-    var result = await window.go.main.App.CheckUpdate();
+    var result = await CheckUpdate();
     if (result && result.hasUpdate) {
       if (typeof showUpdateModal === 'function') showUpdateModal(result);
     }
@@ -496,5 +480,87 @@ function renderChangelog(md) {
   }
   if (inList) html += '</ul>';
   return html;
+}
+
+// ===== 登录页面逻辑 =====
+
+function showLoginPage() {
+  var loginContainer = document.getElementById('login-container');
+  var mainContainer = document.getElementById('main-container');
+  var skeleton = document.getElementById('skeleton-loader');
+  if (loginContainer) loginContainer.style.display = 'flex';
+  if (mainContainer) mainContainer.style.display = 'none';
+  if (skeleton) skeleton.style.display = 'none';
+  // 聚焦密码输入框
+  setTimeout(function() {
+    var pw = document.getElementById('login-password');
+    if (pw) pw.focus();
+  }, 100);
+}
+
+async function handleLogin(e) {
+  if (e) e.preventDefault();
+  var password = document.getElementById('login-password').value;
+  var errorEl = document.getElementById('login-error');
+  var btn = document.getElementById('login-btn');
+
+  if (!password) {
+    errorEl.textContent = '请输入密码';
+    return;
+  }
+
+  errorEl.textContent = '';
+  btn.disabled = true;
+  btn.textContent = '登录中...';
+
+  try {
+    var result = await Login(password);
+    if (result && result.token) {
+      localStorage.setItem('kirox_token', result.token);
+      // 登录成功，隐藏登录页，显示主界面
+      document.getElementById('login-container').style.display = 'none';
+      await showMainApp();
+    } else {
+      errorEl.textContent = (result && result.error) || '登录失败';
+    }
+  } catch (err) {
+    errorEl.textContent = err.message || '登录失败，请检查密码';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '登录';
+  }
+}
+
+async function showMainApp() {
+  var mainContainer = document.getElementById('main-container');
+  var skeleton = document.getElementById('skeleton-loader');
+  if (mainContainer) {
+    mainContainer.style.display = 'block';
+    mainContainer.style.height = '100vh';
+    mainContainer.style.width = '100vw';
+    mainContainer.style.position = 'fixed';
+    mainContainer.style.top = '0';
+    mainContainer.style.left = '0';
+    mainContainer.style.zIndex = '1';
+  }
+  if (skeleton) skeleton.style.display = 'none';
+
+  try {
+    var savedConfig = localStorage.getItem('kiro-config');
+    if (savedConfig) {
+      var cfg = JSON.parse(savedConfig);
+      document.getElementById('cfg-count').value = cfg.count || 1;
+      document.getElementById('cfg-concurrency').value = cfg.concurrency || 1;
+      document.getElementById('cfg-delay').value = cfg.delay || 3;
+    }
+  } catch(e) {
+    console.error('[启动] 加载配置失败:', e);
+  }
+  loadOutlookAccountsList();
+  loadDataDir();
+  loadResultOutputDir();
+  loadProxy();
+  startOverviewTimer();
+  console.log('[启动] 初始化完成');
 }
 
