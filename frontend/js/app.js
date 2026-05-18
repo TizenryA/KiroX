@@ -514,16 +514,21 @@ async function handleLogin(e) {
   btn.textContent = '登录中...';
 
   try {
+    console.log('[登录] 开始登录...');
     var result = await Login(password);
+    console.log('[登录] 返回结果:', JSON.stringify(result));
     if (result && result.token) {
+      console.log('[登录] 登录成功，token:', result.token.substring(0, 10) + '...');
       localStorage.setItem('kirox_token', result.token);
       // 登录成功，隐藏登录页，显示主界面
       document.getElementById('login-container').style.display = 'none';
       await showMainApp();
     } else {
+      console.log('[登录] 登录失败，无 token');
       errorEl.textContent = (result && result.error) || '登录失败';
     }
   } catch (err) {
+    console.error('[登录] 异常:', err);
     errorEl.textContent = err.message || '登录失败，请检查密码';
   } finally {
     btn.disabled = false;
