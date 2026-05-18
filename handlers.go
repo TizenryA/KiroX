@@ -190,7 +190,20 @@ func handleOutlookPost(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleOutlookDelete(w http.ResponseWriter, r *http.Request) {
-	emailAddr := r.PathValue("email")
+	if r.Method != http.MethodDelete {
+		writeJSON(w, http.StatusMethodNotAllowed, map[string]interface{}{"error": "Method not allowed"})
+		return
+	}
+	// 从查询参数或请求体获取 email
+	emailAddr := r.URL.Query().Get("email")
+	if emailAddr == "" {
+		var req struct {
+			Email string `json:"email"`
+		}
+		if err := readJSON(r, &req); err == nil {
+			emailAddr = req.Email
+		}
+	}
 	if emailAddr == "" {
 		writeJSON(w, http.StatusBadRequest, map[string]interface{}{"error": "缺少邮箱地址"})
 		return
