@@ -128,34 +128,48 @@ func initDataDir() {
 
 // serveStaticFiles 提供前端静态文件服务
 func serveStaticFiles(mux *http.ServeMux) {
-	// Try to serve embedded frontend/dist
-	distDir := "frontend/dist"
-	if _, err := os.Stat(distDir); err == nil {
-		log.Printf("[HTTP] 静态文件服务: %s", distDir)
-		// 使用自定义 handler，跳过 /api/ 路径
-		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			// API 路径不处理
-			if len(r.URL.Path) >= 4 && r.URL.Path[:4] == "/api" {
+	log.Printf("[HTTP] 静态文件服务: embed://frontend/dist")
+
+	// 使用 embed.FS 服务静态文件
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		// API 路径不处理
+		if len(r.URL.Path) >= 4 && r.URL.Path[:4] == "/api" {
+			http.NotFound(w, r)
+			return
+		}
+
+		path := "frontend/dist" + r.URL.Path
+		if r.URL.Path == "/" {
+			path = "frontend/dist/index.html"
+		}
+
+		// 尝试读取文件
+		data, err := frontendDist.ReadFile(path)
+		if err != nil {
+			// 文件不存在，返回 index.html (SPA 路由)
+			data, err = frontendDist.ReadFile("frontend/dist/index.html")
+			if err != nil {
 				http.NotFound(w, r)
 				return
 			}
-			// SPA 路由: 如果文件不存在，返回 index.html
-			filePath := distDir + r.URL.Path
-			if info, err := os.Stat(filePath); err != nil || info.IsDir() {
-				http.ServeFile(w, r, distDir+"/index.html")
-				return
-			}
-			http.FileServer(http.Dir(distDir)).ServeHTTP(w, r)
-		})
-	} else {
-		log.Printf("[HTTP] 警告: 前端目录不存在: %s", distDir)
-		mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			if len(r.URL.Path) >= 4 && r.URL.Path[:4] == "/api" {
-				http.NotFound(w, r)
-				return
-			}
+		}
+
+		// 设置 Content-Type
+		switch {
+		case len(path) > 3 && path[len(path)-3:] == ".js":
+			w.Header().Set("Content-Type", "application/javascript")
+		case len(path) > 4 && path[len(path)-4:] == ".css":
+			w.Header().Set("Content-Type", "text/css")
+		case len(path) > 5 && path[len(path)-5:] == ".html":
 			w.Header().Set("Content-Type", "text/html; charset=utf-8")
-			w.Write([]byte("<h1>KiroX</h1><p>前端文件未找到。请检查 frontend/dist 目录。</p>"))
-		})
-	}
+		case len(path) > 4 && path[len(path)-4:] == ".svg":
+			w.Header().Set("Content-Type", "image/svg+xml")
+		case len(path) > 4 && path[len(path)-4:] == ".png":
+			w.Header().Set("Content-Type", "image/png")
+		case len(path) > 4 && path[len(path)-4:] == ".jpg":
+			w.Header().Set("Content-Type", "image/jpeg")
+		}
+
+		w.Write(data)
+	})
 }
