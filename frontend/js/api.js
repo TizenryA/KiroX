@@ -95,12 +95,25 @@ async function GetOverview() {
 
 /** GetStatus -> GET /api/status */
 async function GetStatus() {
-  return _apiGet('/api/status');
+  var result = await _apiGet('/api/status');
+  // 后端返回 {"kiro": {"taskRunning": bool, ...}}，转换为前端期望的格式
+  if (result && result.kiro) {
+    return {
+      running: result.kiro.taskRunning || false,
+      success: result.kiro.taskSuccess || 0,
+      failed: result.kiro.taskFailed || 0,
+      completed: result.kiro.taskCompleted || 0,
+      total: result.kiro.taskTotal || 0
+    };
+  }
+  return result;
 }
 
 /** GetLogs -> GET /api/logs */
 async function GetLogs() {
-  return _apiGet('/api/logs');
+  var result = await _apiGet('/api/logs');
+  // 后端返回 {"logs": [...]}，提取 logs 数组
+  return result && result.logs ? result.logs : [];
 }
 
 /** StartTask(cfg) -> POST /api/task/start */
@@ -125,12 +138,28 @@ async function GetOutlookAccounts() {
 
 /** AddOutlookAccounts(data) -> POST /api/outlook */
 async function AddOutlookAccounts(data) {
-  return _apiPost('/api/outlook', { body: data });
+  // data 是原始文本，直接发送，不要 JSON.stringify
+  var url = API_BASE + '/api/outlook';
+  var res = await fetch(url, {
+    method: 'POST',
+    headers: _apiAuthHeaders({ 'Content-Type': 'text/plain' }),
+    body: data
+  });
+  if (res.status === 401) {
+    localStorage.removeItem('kirox_token');
+    if (typeof showLoginPage === 'function') showLoginPage();
+    throw new Error('认证已过期，请重新登录');
+  }
+  var text = await res.text();
+  var result;
+  try { result = text ? JSON.parse(text) : null; } catch(e) { result = text; }
+  if (!res.ok) throw new Error((result && result.error) || res.statusText);
+  return result;
 }
 
-/** DeleteOutlookAccount(email) -> DELETE /api/outlook/{email} */
+/** DeleteOutlookAccount(email) -> DELETE /api/outlook?email=xxx */
 async function DeleteOutlookAccount(email) {
-  return _apiDel('/api/outlook/' + encodeURIComponent(email));
+  return _apiDel('/api/outlook', { params: { email: email } });
 }
 
 /** ClearOutlookAccounts -> POST /api/outlook/clear */
@@ -160,12 +189,44 @@ async function GetMoeMailConfigs() {
 
 /** SaveMoeMailConfigs(json) -> POST /api/moemail */
 async function SaveMoeMailConfigs(json) {
-  return _apiPost('/api/moemail', { body: json });
+  // json 已经是 JSON 字符串，直接发送
+  var url = API_BASE + '/api/moemail';
+  var res = await fetch(url, {
+    method: 'POST',
+    headers: _apiAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: json
+  });
+  if (res.status === 401) {
+    localStorage.removeItem('kirox_token');
+    if (typeof showLoginPage === 'function') showLoginPage();
+    throw new Error('认证已过期，请重新登录');
+  }
+  var text = await res.text();
+  var result;
+  try { result = text ? JSON.parse(text) : null; } catch(e) { result = text; }
+  if (!res.ok) throw new Error((result && result.error) || res.statusText);
+  return result;
 }
 
 /** TestMoeMailConnection(json) -> POST /api/moemail/test */
 async function TestMoeMailConnection(json) {
-  return _apiPost('/api/moemail/test', { body: json });
+  // json 已经是 JSON 字符串，直接发送
+  var url = API_BASE + '/api/moemail/test';
+  var res = await fetch(url, {
+    method: 'POST',
+    headers: _apiAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: json
+  });
+  if (res.status === 401) {
+    localStorage.removeItem('kirox_token');
+    if (typeof showLoginPage === 'function') showLoginPage();
+    throw new Error('认证已过期，请重新登录');
+  }
+  var text = await res.text();
+  var result;
+  try { result = text ? JSON.parse(text) : null; } catch(e) { result = text; }
+  if (!res.ok) throw new Error((result && result.error) || res.statusText);
+  return result;
 }
 
 /** GetProxy -> GET /api/proxy */
